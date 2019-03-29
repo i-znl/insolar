@@ -1,0 +1,27 @@
+@startuml
+
+ServiceNetwork -> Hostnetwork: Start()
+Hostnetwork -> InternalTransport: Listen
+Hostnetwork -> Hostnetwork: ListenAndWaitUntilReady()
+
+group SendLoop
+ServiceNetwork -> Hostnetwork: SendRequest()
+Hostnetwork -> Hostnetwork: SendRequestPacket()
+Hostnetwork -> InternalTransport: SendRequest()
+InternalTransport -> tcp: send()
+end
+
+group ReceiveLoop
+tcp -> tcp: handleConnection
+tcp --> InternalTransport: packets
+InternalTransport --> Hostnetwork: Packates() <- chan
+Hostnetwork -> Hostnetwork: messageProcessor()
+Hostnetwork --> ServiceNetwork: CallHandler
+Hostnetwork -> InternalTransport: SendResponse()
+InternalTransport -> tcp: SendResponse()
+end
+
+ServiceNetwork -> Hostnetwork: Stop()
+tcp -> tcp:Close
+
+@enduml

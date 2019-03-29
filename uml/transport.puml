@@ -1,0 +1,136 @@
+@startuml
+
+package hostnetwork {
+abstract class transportBase {
+Start()
+Stop()
+listen()
+getOrigin()
+buildRequest()
+}
+
+class hostTransport {
+handlers
+processMessage()
+}
+
+interface InternalTransport{
+PublicAddress()
+GetNodeID()
+SendRequestPacket()
+RegisterPacketHandler()
+NewRequestBuilder()
+BuildResponse()
+}
+
+InternalTransport <|-- hostTransport
+transportBase *-- hostTransport
+
+interface HostNetwork {
+PublicAddress()
+GetNodeID()
+SendRequest()
+RegisterPacketHandler()
+NewRequestBuilder()
+BuildResponse()
+}
+
+class TransportResolvable {
+}
+HostNetwork <|-- TransportResolvable
+
+interface ConsensusNetwork
+class transportConsensus {
+buildPacket()
+processMessage()
+}
+transportBase *-- transportConsensus
+ConsensusNetwork <|-- transportConsensus
+
+TransportResolvable --> InternalTransport
+}
+
+package transport {
+interface Transport {
+SendRequest()
+SendResponse()
+SendPacket()
+Listen()
+Stop()
+Close()
+Packets() <-chan
+Stopped() <-chan
+PublicAddress()
+}
+class futureManager
+interface PublicAddressResolver
+interface connectionFactory
+
+class Host {
+NodeID
+ShortID
+Address
+}
+class Packet {
+Sender
+Receiver
+Type
+RequestID
+RemoteAddress
+}
+
+abstract class baseTransport {
+serializer
+proxy
+packetHandler
+SendRequest()
+SendResponse()
+SendPacket()
+Close()
+Packets() <-chan
+Stopped() <-chan
+PublicAddress()
+}
+futureManager *-- baseTransport
+
+class tcpTransport {
+connectionPool
+CreateConnection()
+send()
+handleAcceptedConnection()
+}
+baseTransport *-- tcpTransport
+
+class udpTransport {
+send()
+handleAcceptedConnection()
+}
+
+baseTransport *-- udpTransport
+Transport <|-- tcpTransport
+Transport <|-- udpTransport
+
+}
+
+tcpTransport <-- transportBase
+
+package bootstrap {
+class bootstrapper {
+}
+}
+bootstrapper --> InternalTransport
+
+package pulsenetwork {
+interface PulseDistributor {
+Distribute()
+}
+class distributor
+PulseDistributor <|-- distributor
+distributor-->tcpTransport
+}
+transportConsensus --> udpTransport
+hostTransport --> tcpTransport
+
+hostTransport --* TransportResolvable
+
+@enduml
