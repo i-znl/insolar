@@ -24,7 +24,7 @@ import (
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = core.NewRefFromBase58("1111cETBhEe3HAbjJihMfQBrduDKjfLchJ3qxe2Twd.11111111111111111111111111111111")
+var PrototypeReference, _ = core.NewRefFromBase58("11113ZoXUs69ctpTgvfp1UnjJQyomjUUcUojLTHNnP3.11111111111111111111111111111111")
 
 // RootDomain holds proxy type
 type RootDomain struct {
@@ -209,6 +209,66 @@ func (r *RootDomain) CreateMemberNoWait(name string, key string) error {
 	return nil
 }
 
+// SaveEthTx is proxy generated method
+func (r *RootDomain) SaveEthTx(ethAddr string, amount uint, ethTxHash string, oracleName string) (interface{}, error) {
+	var args [4]interface{}
+	args[0] = ethAddr
+	args[1] = amount
+	args[2] = ethTxHash
+	args[3] = oracleName
+
+	var argsSerialized []byte
+
+	ret := [2]interface{}{}
+	var ret0 interface{}
+	ret[0] = &ret0
+	var ret1 *foundation.Error
+	ret[1] = &ret1
+
+	err := proxyctx.Current.Serialize(args, &argsSerialized)
+	if err != nil {
+		return ret0, err
+	}
+
+	res, err := proxyctx.Current.RouteCall(r.Reference, true, "SaveEthTx", argsSerialized, *PrototypeReference)
+	if err != nil {
+		return ret0, err
+	}
+
+	err = proxyctx.Current.Deserialize(res, &ret)
+	if err != nil {
+		return ret0, err
+	}
+
+	if ret1 != nil {
+		return ret0, ret1
+	}
+	return ret0, nil
+}
+
+// SaveEthTxNoWait is proxy generated method
+func (r *RootDomain) SaveEthTxNoWait(ethAddr string, amount uint, ethTxHash string, oracleName string) error {
+	var args [4]interface{}
+	args[0] = ethAddr
+	args[1] = amount
+	args[2] = ethTxHash
+	args[3] = oracleName
+
+	var argsSerialized []byte
+
+	err := proxyctx.Current.Serialize(args, &argsSerialized)
+	if err != nil {
+		return err
+	}
+
+	_, err = proxyctx.Current.RouteCall(r.Reference, false, "SaveEthTx", argsSerialized, *PrototypeReference)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetRootMemberRef is proxy generated method
 func (r *RootDomain) GetRootMemberRef() (*core.RecordRef, error) {
 	var args [0]interface{}
@@ -262,13 +322,13 @@ func (r *RootDomain) GetRootMemberRefNoWait() error {
 }
 
 // GetOracleMemberRef is proxy generated method
-func (r *RootDomain) GetOracleMemberRef() (*core.RecordRef, error) {
+func (r *RootDomain) GetOracleMemberRef() ([]core.RecordRef, error) {
 	var args [0]interface{}
 
 	var argsSerialized []byte
 
 	ret := [2]interface{}{}
-	var ret0 *core.RecordRef
+	var ret0 []core.RecordRef
 	ret[0] = &ret0
 	var ret1 *foundation.Error
 	ret[1] = &ret1

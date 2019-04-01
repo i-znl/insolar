@@ -24,7 +24,7 @@ import (
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = core.NewRefFromBase58("1111Lc2YTL3Wc1KJncw9yq645KhhYqYuFontL81WV9.11111111111111111111111111111111")
+var PrototypeReference, _ = core.NewRefFromBase58("11113Qgdqn3KBb1hmpG7GLfhKqa5kEdDFYtTiuK1Qdx.11111111111111111111111111111111")
 
 // Account holds proxy type
 type Account struct {
@@ -372,6 +372,58 @@ func (r *Account) GetBalanceNoWait() error {
 	}
 
 	_, err = proxyctx.Current.RouteCall(r.Reference, false, "GetBalance", argsSerialized, *PrototypeReference)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AddToBalance is proxy generated method
+func (r *Account) AddToBalance(amount uint) error {
+	var args [1]interface{}
+	args[0] = amount
+
+	var argsSerialized []byte
+
+	ret := [1]interface{}{}
+	var ret0 *foundation.Error
+	ret[0] = &ret0
+
+	err := proxyctx.Current.Serialize(args, &argsSerialized)
+	if err != nil {
+		return err
+	}
+
+	res, err := proxyctx.Current.RouteCall(r.Reference, true, "AddToBalance", argsSerialized, *PrototypeReference)
+	if err != nil {
+		return err
+	}
+
+	err = proxyctx.Current.Deserialize(res, &ret)
+	if err != nil {
+		return err
+	}
+
+	if ret0 != nil {
+		return ret0
+	}
+	return nil
+}
+
+// AddToBalanceNoWait is proxy generated method
+func (r *Account) AddToBalanceNoWait(amount uint) error {
+	var args [1]interface{}
+	args[0] = amount
+
+	var argsSerialized []byte
+
+	err := proxyctx.Current.Serialize(args, &argsSerialized)
+	if err != nil {
+		return err
+	}
+
+	_, err = proxyctx.Current.RouteCall(r.Reference, false, "AddToBalance", argsSerialized, *PrototypeReference)
 	if err != nil {
 		return err
 	}

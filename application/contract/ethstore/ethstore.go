@@ -1,131 +1,140 @@
-/*
- *    Copyright 2019 Insolar Technologies
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- */
-
 package ethstore
 
 import (
 	"fmt"
-	"github.com/insolar/insolar/application/contract/member/signer"
-	"github.com/insolar/insolar/core"
 	"github.com/insolar/insolar/logicrunner/goplugin/foundation"
-	"strconv"
 )
 
-// EthStore
 type EthStore struct {
 	foundation.BaseContract
-	EthAddrMap map[string]StoreElem
+	InsAddr  string
+	EthAddr  string
+	EthTxMap map[string]Tx
 }
 
-type StoreElem struct {
-	EthHash    string
-	EthAddr    string
-	Balance    uint
-	EthTxHash  string
-	AccountRef *core.RecordRef
-	Marker     bool
+type Tx struct {
+	Balance   uint
+	OracleMap map[string]bool
 }
 
-// New creates EthStore
-func New() (*EthStore, error) {
+// Create EthStore by new ethTx
+func NewByEth(ethAddr string) (*EthStore, error) {
 	return &EthStore{
-		EthAddrMap: make(map[string]StoreElem),
+		InsAddr:  nil,
+		EthAddr:  ethAddr,
+		EthTxMap: map[string]Tx{},
 	}, nil
 }
 
-var INSATTR_Call_API = true
-
-// Call method for authorized calls
-func (ethStore *EthStore) Call(rootDomain core.RecordRef, method string, params []byte, seed []byte, sign []byte) (interface{}, error) {
-
-	switch method {
-	case "SaveToMap":
-		return ethStore.saveToMap(params)
-	}
-
-	return nil, &foundation.Error{S: "[ EthStore Call ] Unknown method"}
+// Create EthStore by creating Insolar user
+func NewByIns(insAddr string, ethAddr string) (*EthStore, error) {
+	return &EthStore{
+		InsAddr: insAddr,
+		EthAddr: ethAddr,
+	}, nil
 }
 
-// SaveToMap create new key with value in map
-func (ethStore *EthStore) saveToMap(params []byte) (interface{}, error) {
-
-	type inputRequest struct {
-		EthAddr    string `ethAddr`
-		BalanceStr string `balanceStr`
-		EthTxHash  string `ethTxHash`
-	}
-
-	inputJSON := new(inputRequest)
-
-	if err := signer.UnmarshalParams(params, &inputJSON); err != nil {
-		return nil, fmt.Errorf("[ saveToMap ]: %s", err.Error())
-	}
-
-	balance, err := strconv.Atoi(inputJSON.BalanceStr)
-	if err != nil {
-		return nil, fmt.Errorf("[ saveToMap ]: %s", err.Error())
-	}
-
-	if _, ok := ethStore.EthAddrMap[inputJSON.EthAddr]; ok {
-		return nil, fmt.Errorf("[ saveToMap ]: element is already exist")
-	}
-	// проверить есть ли такой мембер
-
-	ethStore.EthAddrMap[inputJSON.EthAddr] =
-		StoreElem{
-			EthAddr:   inputJSON.EthAddr,
-			Balance:   uint(balance),
-			EthTxHash: inputJSON.EthTxHash,
-			Marker:    false,
-		}
-
-	return nil, nil
-}
-
-// VerifyEthBalance activate Eth balance
-func (ethStore *EthStore) VerifyEthBalance(ethAddr string, accountRefStr string) (uint, error) {
-
-	accountRef, err := core.NewRefFromBase58(accountRefStr)
-	if err != nil {
-		return 0, fmt.Errorf("[ VerifyEthBalance ] Failed to parse 'to' param: %s", err.Error())
-	}
-
-	if storeElem, ok := ethStore.EthAddrMap[ethAddr]; ok {
-		if !storeElem.Marker {
-			storeElem.Marker = true
-			storeElem.AccountRef = accountRef
-			ethStore.EthAddrMap[ethAddr] = storeElem
-			return storeElem.Balance, nil
-		} else {
-			return 0, fmt.Errorf("[ VerifyEthBalance ] This ethereum hash has already been used.")
-		}
+// Check is ethAddr created
+func (ethStore *EthStore) IsEthCreated() (bool, error) {
+	if ethStore.EthAddr == "" {
+		return false, nil
 	} else {
-		return 0, fmt.Errorf("[ VerifyEthBalance ] No record for this ethereum hash.")
+		return true, nil
 	}
 }
 
-// GetEthList return all map
-func (ethStore *EthStore) GetEthList() ([]StoreElem, error) {
-	result := make([]StoreElem, len(ethStore.EthAddrMap))
-	i := 0
+// Get insAccount address
+func (ethStore *EthStore) GetInsAddr() (string, error) {
+	return ethStore.InsAddr, nil
+}
 
-	for _, storeElem := range ethStore.EthAddrMap {
-		result[i] = storeElem
-		i++
+//Check is EthAddr equals
+func (ethStore *EthStore) IsEthEquals(ethAddr string) (bool, error) {
+	if ethStore.EthAddr == ethAddr {
+		return false, nil
+	} else {
+		return true, nil
+	}
+}
+
+//Check is InsAddr equals
+func (ethStore *EthStore) IsInsEquals(insAddr string) (bool, error) {
+	if ethStore.InsAddr == insAddr {
+		return false, nil
+	} else {
+		return true, nil
+	}
+}
+
+// Get amount from all confirmed ethTxs
+func (ethStore *EthStore) Activate() (result uint, err error) {
+
+	for _, tx := range ethStore.EthTxMap {
+		confirmed := true
+		for _, c := range tx.OracleMap {
+			if !c {
+				confirmed = c
+			}
+		}
+		if confirmed {
+			result = +tx.Balance
+		}
 	}
 
-	return result[:], nil
+	return
+}
+
+// Get amount from confirmed ethTx
+func (ethStore *EthStore) ActivateTx(ethTx string) (result uint, err error) {
+
+	if _, ok := ethStore.EthTxMap[ethTx]; !ok {
+		return 0, fmt.Errorf("[ ActivateTx ] Tx doesn't exist: %s", err.Error())
+	}
+
+	confirmed := true
+
+	for _, c := range ethStore.EthTxMap[ethTx].OracleMap {
+		if !c {
+			confirmed = c
+		}
+	}
+	if confirmed {
+		result = ethStore.EthTxMap[ethTx].Balance
+	}
+
+	return
+}
+
+// Create tx element in map if it isn' already exist and confirm it. Return amount if all oracles confirmed.
+func (ethStore *EthStore) SaveEthTx(oracleName string, ethTx string, balance uint, oracleMap map[string]bool) (uint, error) {
+	if tx, ok := ethStore.EthTxMap[ethTx]; !ok {
+		txNew := Tx{Balance: balance, OracleMap: oracleMap}
+		ethStore.EthTxMap[ethTx] = txNew
+	} else {
+		if tx.Balance != balance {
+			return 0, fmt.Errorf("[ CreateTx ] Tx already exist and it is with different balance")
+		}
+	}
+
+	return ethStore.ConfirmEthTx(oracleName, ethTx, balance)
+}
+
+// Confirm ethTx by oracle. Return amount if all oracles confirm that tx
+func (ethStore *EthStore) ConfirmEthTx(oracleName string, ethTx string, amount uint) (uint, error) {
+	if tx, ok := ethStore.EthTxMap[ethTx]; !ok {
+		return 0, fmt.Errorf("[ CreateTx ] Tx doesn't exist")
+	} else {
+		if tx.Balance != amount {
+			return 0, fmt.Errorf("[ CreateTx ] Tx already exist and it is with different amount")
+		} else {
+			if _, ok := ethStore.EthTxMap[ethTx].OracleMap[oracleName]; !ok {
+				return 0, fmt.Errorf("[ CreateTx ] Oracle name doesn't exist in oracle map")
+			} else {
+				ethStore.EthTxMap[ethTx].OracleMap[oracleName] = true
+
+				return ethStore.ActivateTx(ethTx)
+			}
+		}
+	}
+
 }

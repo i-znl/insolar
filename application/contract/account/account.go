@@ -148,3 +148,9 @@ func (a *Account) applySecret(params []byte) (interface{}, error) {
 
 	return a.ReceiveTransfer(a.SecretMap[secret])
 }
+
+func (a *Account) AddToBalance(amount uint) error {
+	a.Balance = +amount
+
+	return nil
+}

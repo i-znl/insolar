@@ -19,12 +19,10 @@ package member
 import (
 	"fmt"
 	"github.com/insolar/insolar/application/proxy/account"
-	"github.com/insolar/insolar/application/proxy/ethstore"
 
 	"github.com/insolar/insolar/application/contract/member/signer"
 	"github.com/insolar/insolar/application/proxy/nodedomain"
 	"github.com/insolar/insolar/application/proxy/rootdomain"
-	"github.com/insolar/insolar/application/proxy/wallet"
 	"github.com/insolar/insolar/core"
 	"github.com/insolar/insolar/logicrunner/goplugin/foundation"
 )
@@ -98,14 +96,12 @@ func (m *Member) Call(rootDomain core.RecordRef, method string, params []byte, s
 	case "GetNodeRef":
 		return m.getNodeRefCall(rootDomain, params)
 
-	case "CreateAccount":
-		return m.createAccount(params)
 	case "GetAccountRef":
 		return m.getAccountRef()
 
 		// ethStore methods
 	case "SaveToMap":
-		return m.CallEthStore(rootDomain, method, params, seed, sign)
+		return m.saveEthTx(rootDomain, method, params, seed, sign)
 
 		// account methods
 	case "GetBalance", "Transfer", "SecretTransfer", "ApplySecret":
@@ -125,52 +121,53 @@ func (m *Member) createMemberCall(ref core.RecordRef, params []byte) (interface{
 	return rootDomain.CreateMember(name, key)
 }
 
-func (m *Member) getMyBalanceCall() (interface{}, error) {
-	w, err := wallet.GetImplementationFrom(m.GetReference())
-	if err != nil {
-		return 0, fmt.Errorf("[ getMyBalanceCall ]: %s", err.Error())
-	}
+//
+//func (m *Member) getMyBalanceCall() (interface{}, error) {
+//	w, err := wallet.GetImplementationFrom(m.GetReference())
+//	if err != nil {
+//		return 0, fmt.Errorf("[ getMyBalanceCall ]: %s", err.Error())
+//	}
+//
+//	return w.GetBalance()
+//}
+//
+//func (m *Member) getBalanceCall(params []byte) (interface{}, error) {
+//	var member string
+//	if err := signer.UnmarshalParams(params, &member); err != nil {
+//		return nil, fmt.Errorf("[ getBalanceCall ] : %s", err.Error())
+//	}
+//	memberRef, err := core.NewRefFromBase58(member)
+//	if err != nil {
+//		return nil, fmt.Errorf("[ getBalanceCall ] : %s", err.Error())
+//	}
+//	w, err := wallet.GetImplementationFrom(*memberRef)
+//	if err != nil {
+//		return nil, fmt.Errorf("[ getBalanceCall ] : %s", err.Error())
+//	}
+//
+//	return w.GetBalance()
+//}
 
-	return w.GetBalance()
-}
-
-func (m *Member) getBalanceCall(params []byte) (interface{}, error) {
-	var member string
-	if err := signer.UnmarshalParams(params, &member); err != nil {
-		return nil, fmt.Errorf("[ getBalanceCall ] : %s", err.Error())
-	}
-	memberRef, err := core.NewRefFromBase58(member)
-	if err != nil {
-		return nil, fmt.Errorf("[ getBalanceCall ] : %s", err.Error())
-	}
-	w, err := wallet.GetImplementationFrom(*memberRef)
-	if err != nil {
-		return nil, fmt.Errorf("[ getBalanceCall ] : %s", err.Error())
-	}
-
-	return w.GetBalance()
-}
-
-func (m *Member) transferCall(params []byte) (interface{}, error) {
-	var amount uint
-	var toStr string
-	if err := signer.UnmarshalParams(params, &amount, &toStr); err != nil {
-		return nil, fmt.Errorf("[ transferCall ] Can't unmarshal params: %s", err.Error())
-	}
-	to, err := core.NewRefFromBase58(toStr)
-	if err != nil {
-		return nil, fmt.Errorf("[ transferCall ] Failed to parse 'to' param: %s", err.Error())
-	}
-	if m.GetReference() == *to {
-		return nil, fmt.Errorf("[ transferCall ] Recipient must be different from the sender")
-	}
-	w, err := wallet.GetImplementationFrom(m.GetReference())
-	if err != nil {
-		return nil, fmt.Errorf("[ transferCall ] Can't get implementation: %s", err.Error())
-	}
-
-	return nil, w.Transfer(amount, to)
-}
+//func (m *Member) transferCall(params []byte) (interface{}, error) {
+//	var amount uint
+//	var toStr string
+//	if err := signer.UnmarshalParams(params, &amount, &toStr); err != nil {
+//		return nil, fmt.Errorf("[ transferCall ] Can't unmarshal params: %s", err.Error())
+//	}
+//	to, err := core.NewRefFromBase58(toStr)
+//	if err != nil {
+//		return nil, fmt.Errorf("[ transferCall ] Failed to parse 'to' param: %s", err.Error())
+//	}
+//	if m.GetReference() == *to {
+//		return nil, fmt.Errorf("[ transferCall ] Recipient must be different from the sender")
+//	}
+//	w, err := wallet.GetImplementationFrom(m.GetReference())
+//	if err != nil {
+//		return nil, fmt.Errorf("[ transferCall ] Can't get implementation: %s", err.Error())
+//	}
+//
+//	return nil, w.Transfer(amount, to)
+//}
 
 func (m *Member) dumpUserInfoCall(ref core.RecordRef, params []byte) (interface{}, error) {
 	rootDomain := rootdomain.GetObject(ref)
@@ -229,17 +226,6 @@ func (m *Member) getNodeRefCall(ref core.RecordRef, params []byte) (interface{},
 	return nodeRef, nil
 }
 
-func (m *Member) createAccount(params []byte) (string, error) {
-
-	accountHolder := account.New(params)
-	a, err := accountHolder.AsDelegate(m.GetReference())
-	if err != nil {
-		return "", fmt.Errorf("[ createAccount ] Can't save as delegate: %s", err.Error())
-	}
-
-	return a.GetReference().String(), nil
-}
-
 func (m *Member) getAccountRef() (string, error) {
 
 	a, err := account.GetImplementationFrom(m.GetReference())
@@ -250,14 +236,25 @@ func (m *Member) getAccountRef() (string, error) {
 	return a.GetReference().String(), nil
 }
 
-func (m *Member) CallEthStore(rootDomain core.RecordRef, method string, params []byte, seed []byte, sign []byte) (interface{}, error) {
+func (m *Member) saveEthTx(rootDomainRef core.RecordRef, method string, params []byte, seed []byte, sign []byte) (interface{}, error) {
 
-	ethStore, err := ethstore.GetImplementationFrom(m.GetReference())
-	if err != nil {
-		return "", fmt.Errorf("[ CallEthStore ] Can't get implementation: %s", err.Error())
+	type inputRequest struct {
+		OracleName string `oracleName`
+		EthAddr    string `ethAddr`
+		Balance    uint   `balance`
+		EthTxHash  string `ethTxHash`
 	}
 
-	return ethStore.Call(rootDomain, method, params, seed, sign)
+	inputJSON := new(inputRequest)
+
+	//verifySign that it is oracle
+
+	if err := signer.UnmarshalParams(params, &inputJSON); err != nil {
+		return nil, fmt.Errorf("[ saveEthTx ]: %s", err.Error())
+	}
+
+	rootDomain := rootdomain.GetObject(rootDomainRef)
+	return rootDomain.SaveEthTx(inputJSON.EthAddr, inputJSON.Balance, inputJSON.EthTxHash, inputJSON.OracleName)
 }
 
 func (m *Member) CallAccount(rootDomain core.RecordRef, method string, params []byte, seed []byte, sign []byte) (interface{}, error) {
