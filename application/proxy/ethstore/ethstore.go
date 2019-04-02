@@ -29,7 +29,7 @@ type Tx struct {
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = core.NewRefFromBase58("11114vu9tJRExCgiHkFGbGw77xPmtBekU2Lo8wHMVW.11111111111111111111111111111111")
+var PrototypeReference, _ = core.NewRefFromBase58("1111K5zTa2MUkC9ekCWwv7uUW7ePc2GWJAfL8yA2T6.11111111111111111111111111111111")
 
 // EthStore holds proxy type
 type EthStore struct {
@@ -174,58 +174,6 @@ func (r *EthStore) GetCode() (core.RecordRef, error) {
 	return r.Code, nil
 }
 
-// IsEthCreated is proxy generated method
-func (r *EthStore) IsEthCreated() (bool, error) {
-	var args [0]interface{}
-
-	var argsSerialized []byte
-
-	ret := [2]interface{}{}
-	var ret0 bool
-	ret[0] = &ret0
-	var ret1 *foundation.Error
-	ret[1] = &ret1
-
-	err := proxyctx.Current.Serialize(args, &argsSerialized)
-	if err != nil {
-		return ret0, err
-	}
-
-	res, err := proxyctx.Current.RouteCall(r.Reference, true, "IsEthCreated", argsSerialized, *PrototypeReference)
-	if err != nil {
-		return ret0, err
-	}
-
-	err = proxyctx.Current.Deserialize(res, &ret)
-	if err != nil {
-		return ret0, err
-	}
-
-	if ret1 != nil {
-		return ret0, ret1
-	}
-	return ret0, nil
-}
-
-// IsEthCreatedNoWait is proxy generated method
-func (r *EthStore) IsEthCreatedNoWait() error {
-	var args [0]interface{}
-
-	var argsSerialized []byte
-
-	err := proxyctx.Current.Serialize(args, &argsSerialized)
-	if err != nil {
-		return err
-	}
-
-	_, err = proxyctx.Current.RouteCall(r.Reference, false, "IsEthCreated", argsSerialized, *PrototypeReference)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // GetInsAddr is proxy generated method
 func (r *EthStore) GetInsAddr() (string, error) {
 	var args [0]interface{}
@@ -325,60 +273,6 @@ func (r *EthStore) IsEthEqualsNoWait(ethAddr string) error {
 	}
 
 	_, err = proxyctx.Current.RouteCall(r.Reference, false, "IsEthEquals", argsSerialized, *PrototypeReference)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// IsInsEquals is proxy generated method
-func (r *EthStore) IsInsEquals(insAddr string) (bool, error) {
-	var args [1]interface{}
-	args[0] = insAddr
-
-	var argsSerialized []byte
-
-	ret := [2]interface{}{}
-	var ret0 bool
-	ret[0] = &ret0
-	var ret1 *foundation.Error
-	ret[1] = &ret1
-
-	err := proxyctx.Current.Serialize(args, &argsSerialized)
-	if err != nil {
-		return ret0, err
-	}
-
-	res, err := proxyctx.Current.RouteCall(r.Reference, true, "IsInsEquals", argsSerialized, *PrototypeReference)
-	if err != nil {
-		return ret0, err
-	}
-
-	err = proxyctx.Current.Deserialize(res, &ret)
-	if err != nil {
-		return ret0, err
-	}
-
-	if ret1 != nil {
-		return ret0, ret1
-	}
-	return ret0, nil
-}
-
-// IsInsEqualsNoWait is proxy generated method
-func (r *EthStore) IsInsEqualsNoWait(insAddr string) error {
-	var args [1]interface{}
-	args[0] = insAddr
-
-	var argsSerialized []byte
-
-	err := proxyctx.Current.Serialize(args, &argsSerialized)
-	if err != nil {
-		return err
-	}
-
-	_, err = proxyctx.Current.RouteCall(r.Reference, false, "IsInsEquals", argsSerialized, *PrototypeReference)
 	if err != nil {
 		return err
 	}

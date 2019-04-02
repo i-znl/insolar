@@ -33,9 +33,9 @@ import (
 // RootDomain is smart contract representing entrance point to system
 type RootDomain struct {
 	foundation.BaseContract
-	RootMember    core.RecordRef
-	OracleMembers []core.RecordRef
-	NodeDomainRef core.RecordRef
+	RootMember    core.RecordRef   `json:"rootMember"`
+	OracleMembers []core.RecordRef `json:"oracleMembers"`
+	NodeDomain    core.RecordRef   `json:"node_domain"`
 }
 
 var INSATTR_CreateMember_API = true
@@ -201,16 +201,17 @@ func (rd *RootDomain) SaveEthTx(ethAddr string, amount uint, ethTxHash string, o
 	return nil, nil
 }
 
-// GetRootMemberRef returns root member's reference
+// Returns root member's reference
 func (rd *RootDomain) GetRootMemberRef() (*core.RecordRef, error) {
 	return &rd.RootMember, nil
 }
 
-// GetOracleMemberRef returns root member's reference
+// Returns oracle members's reference
 func (rd *RootDomain) GetOracleMemberRef() ([]core.RecordRef, error) {
 	return rd.OracleMembers, nil
 }
 
+// Returns user name and balance in map
 func (rd *RootDomain) getUserInfoMap(m *member.Member) (map[string]interface{}, error) {
 	a, err := account.GetImplementationFrom(m.GetReference())
 	if err != nil {
@@ -290,7 +291,7 @@ func (rd *RootDomain) Info() (interface{}, error) {
 	res := map[string]interface{}{
 		"root_member":    rd.RootMember.String(),
 		"oracle_members": rd.OracleMembers,
-		"node_domain":    rd.NodeDomainRef.String(),
+		"node_domain":    rd.NodeDomain.String(),
 	}
 	resJSON, err := json.Marshal(res)
 	if err != nil {
@@ -301,7 +302,7 @@ func (rd *RootDomain) Info() (interface{}, error) {
 
 // GetNodeDomainRef returns reference of NodeDomain instance
 func (rd *RootDomain) GetNodeDomainRef() (core.RecordRef, error) {
-	return rd.NodeDomainRef, nil
+	return rd.NodeDomain, nil
 }
 
 // NewRootDomain creates new RootDomain

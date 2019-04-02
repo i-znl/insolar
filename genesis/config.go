@@ -32,7 +32,7 @@ type Node struct {
 // Config contains all genesis config
 type Config struct {
 	RootKeysFile     string `mapstructure:"root_keys_file"`
-	OracleKeysFile   string `mapstructure:"oracle_keys_file"`
+	OracleKeysFile   string `mapstructure:"oracles_keys_file"`
 	NodeKeysDir      string `mapstructure:"node_keys_dir"`
 	DiscoveryKeysDir string `mapstructure:"discovery_keys_dir"`
 	KeysNameFormat   string `mapstructure:"keys_name_format"`

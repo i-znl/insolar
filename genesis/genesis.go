@@ -28,7 +28,6 @@ import (
 	"strconv"
 
 	"github.com/insolar/insolar/application/contract/account"
-	"github.com/insolar/insolar/application/contract/ethstore"
 	"github.com/insolar/insolar/application/contract/member"
 	"github.com/insolar/insolar/application/contract/nodedomain"
 	"github.com/insolar/insolar/application/contract/noderecord"
@@ -69,16 +68,16 @@ type nodeInfo struct {
 
 // Genesis is a component for precreation core contracts types and RootDomain instance
 type Genesis struct {
-	rootDomainRef   *core.RecordRef
-	nodeDomainRef   *core.RecordRef
-	rootMemberRef   *core.RecordRef
-	oracleMemberRef *core.RecordRef
-	prototypeRefs   map[string]*core.RecordRef
-	isGenesis       bool
-	config          *Config
-	keyOut          string
-	ArtifactManager core.ArtifactManager `inject:""`
-	MBLock          messageBusLocker     `inject:""`
+	rootDomainRef    *core.RecordRef
+	nodeDomainRef    *core.RecordRef
+	rootMemberRef    *core.RecordRef
+	oracleMembersRef []*core.RecordRef
+	prototypeRefs    map[string]*core.RecordRef
+	isGenesis        bool
+	config           *Config
+	keyOut           string
+	ArtifactManager  core.ArtifactManager `inject:""`
+	MBLock           messageBusLocker     `inject:""`
 }
 
 // NewGenesis creates new Genesis
@@ -229,81 +228,45 @@ func (g *Genesis) activateRootMember(
 	return nil
 }
 
-func (g *Genesis) activateOracleMember(
-	ctx context.Context, domain *core.RecordID, cb *ContractsBuilder, rootPubKey string,
+func (g *Genesis) activateOracleMembers(
+	ctx context.Context, domain *core.RecordID, cb *ContractsBuilder, oraclePubKeys map[string]string,
 ) error {
 
-	m, err := member.New("OracleMember", rootPubKey)
-	if err != nil {
-		return errors.Wrap(err, "[ activateOracleMember ]")
-	}
+	for oracleName, oraclePubKey := range oraclePubKeys {
+		m, err := member.New(oracleName, oraclePubKey)
+		if err != nil {
+			return errors.Wrap(err, "[ activateOracleMembers ]")
+		}
 
-	instanceData, err := serializeInstance(m)
-	if err != nil {
-		return errors.Wrap(err, "[ activateOracleMember ]")
-	}
+		instanceData, err := serializeInstance(m)
+		if err != nil {
+			return errors.Wrap(err, "[ activateOracleMembers ]")
+		}
 
-	contractID, err := g.ArtifactManager.RegisterRequest(ctx, *g.rootDomainRef, &message.Parcel{Msg: &message.GenesisRequest{Name: "OracleMember"}})
+		contractID, err := g.ArtifactManager.RegisterRequest(ctx, *g.rootDomainRef, &message.Parcel{Msg: &message.GenesisRequest{Name: oracleName}})
 
-	if err != nil {
-		return errors.Wrap(err, "[ activateOracleMember ] couldn't create root member instance")
-	}
-	contract := core.NewRecordRef(*domain, *contractID)
-	_, err = g.ArtifactManager.ActivateObject(
-		ctx,
-		core.RecordRef{},
-		*contract,
-		*g.rootDomainRef,
-		*cb.Prototypes[memberContract],
-		false,
-		instanceData,
-	)
-	if err != nil {
-		return errors.Wrap(err, "[ activateOracleMember ] couldn't create root member instance")
-	}
-	_, err = g.ArtifactManager.RegisterResult(ctx, *g.rootDomainRef, *contract, nil)
-	if err != nil {
-		return errors.Wrap(err, "[ activateOracleMember ] couldn't create root member instance")
-	}
-	g.oracleMemberRef = contract
-	return nil
-}
+		if err != nil {
+			return errors.Wrap(err, "[ activateOracleMembers ] couldn't create root member instance")
+		}
+		contract := core.NewRecordRef(*domain, *contractID)
+		_, err = g.ArtifactManager.ActivateObject(
+			ctx,
+			core.RecordRef{},
+			*contract,
+			*g.rootDomainRef,
+			*cb.Prototypes[memberContract],
+			false,
+			instanceData,
+		)
+		if err != nil {
+			return errors.Wrap(err, "[ activateOracleMembers ] couldn't create root member instance")
+		}
+		_, err = g.ArtifactManager.RegisterResult(ctx, *g.rootDomainRef, *contract, nil)
+		if err != nil {
+			return errors.Wrap(err, "[ activateOracleMembers ] couldn't create root member instance")
+		}
 
-func (g *Genesis) activateEthStore(
-	ctx context.Context, domain *core.RecordID, cb *ContractsBuilder,
-) error {
-
-	e, err := ethstore.New()
-	if err != nil {
-		return errors.Wrap(err, "[ activateEthStore ]")
-	}
-
-	instanceData, err := serializeInstance(e)
-	if err != nil {
-		return errors.Wrap(err, "[ activateEthStore ]")
-	}
-
-	contractID, err := g.ArtifactManager.RegisterRequest(ctx, *g.rootDomainRef, &message.Parcel{Msg: &message.GenesisRequest{Name: "EthStore"}})
-
-	if err != nil {
-		return errors.Wrap(err, "[ activateEthStore ] couldn't create EthStore instance")
-	}
-	contract := core.NewRecordRef(*domain, *contractID)
-	_, err = g.ArtifactManager.ActivateObject(
-		ctx,
-		core.RecordRef{},
-		*contract,
-		*g.oracleMemberRef,
-		*cb.Prototypes[ethstoreContract],
-		true,
-		instanceData,
-	)
-	if err != nil {
-		return errors.Wrap(err, "[ activateEthStore ] couldn't create root member instance")
-	}
-	_, err = g.ArtifactManager.RegisterResult(ctx, *g.rootDomainRef, *contract, nil)
-	if err != nil {
-		return errors.Wrap(err, "[ activateEthStore ] couldn't create root member instance")
+		g.oracleMembersRef = append(g.oracleMembersRef, contract)
 	}
 
 	return nil
@@ -313,7 +276,11 @@ func (g *Genesis) activateEthStore(
 func (g *Genesis) updateRootDomain(
 	ctx context.Context, domainDesc core.ObjectDescriptor,
 ) error {
-	updateData, err := serializeInstance(&rootdomain.RootDomain{RootMember: *g.rootMemberRef, OracleMember: *g.oracleMemberRef, NodeDomainRef: *g.nodeDomainRef})
+	oracleMembers := make([]core.RecordRef, len(g.oracleMembersRef))
+	for i, om := range g.oracleMembersRef {
+		oracleMembers[i] = *om
+	}
+	updateData, err := serializeInstance(&rootdomain.RootDomain{RootMember: *g.rootMemberRef, OracleMembers: oracleMembers[:], NodeDomain: *g.nodeDomainRef})
 	if err != nil {
 		return errors.Wrap(err, "[ updateRootDomain ]")
 	}
@@ -369,7 +336,7 @@ func (g *Genesis) activateRootMemberAccount(
 }
 
 func (g *Genesis) activateSmartContracts(
-	ctx context.Context, cb *ContractsBuilder, rootPubKey string, oraclePubKey string, rootDomainID *core.RecordID,
+	ctx context.Context, cb *ContractsBuilder, rootPubKey string, oraclePubKeys map[string]string, rootDomainID *core.RecordID,
 ) ([]genesisNode, error) {
 
 	rootDomainDesc, err := g.activateRootDomain(ctx, cb, rootDomainID)
@@ -385,7 +352,7 @@ func (g *Genesis) activateSmartContracts(
 	if err != nil {
 		return nil, errors.Wrap(err, errMsg)
 	}
-	err = g.activateOracleMember(ctx, rootDomainID, cb, oraclePubKey)
+	err = g.activateOracleMembers(ctx, rootDomainID, cb, oraclePubKeys)
 	if err != nil {
 		return nil, errors.Wrap(err, errMsg)
 	}
@@ -395,10 +362,6 @@ func (g *Genesis) activateSmartContracts(
 		return nil, errors.Wrap(err, errMsg)
 	}
 	err = g.activateRootMemberAccount(ctx, rootDomainID, cb)
-	if err != nil {
-		return nil, errors.Wrap(err, errMsg)
-	}
-	err = g.activateEthStore(ctx, rootDomainID, cb)
 	if err != nil {
 		return nil, errors.Wrap(err, errMsg)
 	}
@@ -667,12 +630,12 @@ func (g *Genesis) Start(ctx context.Context) error {
 		return errors.Wrap(err, "[ Genesis ] couldn't get root keys")
 	}
 
-	_, oraclePubKey, err := getKeysFromFile(ctx, g.config.OracleKeysFile)
+	oraclePubKeys, err := getMembersPubKeysFromFile(ctx, g.config.OracleKeysFile)
 	if err != nil {
 		return errors.Wrap(err, "[ Genesis ] couldn't get oracle keys")
 	}
 
-	nodes, err := g.activateSmartContracts(ctx, cb, rootPubKey, oraclePubKey, rootDomainID)
+	nodes, err := g.activateSmartContracts(ctx, cb, rootPubKey, oraclePubKeys, rootDomainID)
 	if err != nil {
 		return errors.Wrap(err, "[ Genesis ]")
 	}

@@ -29,8 +29,8 @@ import (
 
 type Member struct {
 	foundation.BaseContract
-	Name      string
-	PublicKey string
+	Name      string `json:"name"`
+	PublicKey string `json:"publicKey"`
 }
 
 func (m *Member) GetName() (string, error) {

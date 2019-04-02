@@ -34,14 +34,15 @@ func NewByIns(insAddr string, ethAddr string) (*EthStore, error) {
 	}, nil
 }
 
-// Check is ethAddr created
-func (ethStore *EthStore) IsEthCreated() (bool, error) {
-	if ethStore.EthAddr == "" {
-		return false, nil
-	} else {
-		return true, nil
-	}
-}
+//
+//// Check is ethAddr created
+//func (ethStore *EthStore) IsEthCreated() (bool, error) {
+//	if ethStore.EthAddr == "" {
+//		return false, nil
+//	} else {
+//		return true, nil
+//	}
+//}
 
 // Get insAccount address
 func (ethStore *EthStore) GetInsAddr() (string, error) {
@@ -57,14 +58,14 @@ func (ethStore *EthStore) IsEthEquals(ethAddr string) (bool, error) {
 	}
 }
 
-//Check is InsAddr equals
-func (ethStore *EthStore) IsInsEquals(insAddr string) (bool, error) {
-	if ethStore.InsAddr == insAddr {
-		return false, nil
-	} else {
-		return true, nil
-	}
-}
+////Check is InsAddr equals
+//func (ethStore *EthStore) IsInsEquals(insAddr string) (bool, error) {
+//	if ethStore.InsAddr == insAddr {
+//		return false, nil
+//	} else {
+//		return true, nil
+//	}
+//}
 
 // Get amount from all confirmed ethTxs
 func (ethStore *EthStore) Activate() (result uint, err error) {
