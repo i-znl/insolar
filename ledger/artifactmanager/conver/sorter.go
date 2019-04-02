@@ -31,15 +31,35 @@ type Sorter struct {
 	sLock                 sync.RWMutex
 	past, present, future belt.Slot
 
+	mPast, mPresent, mFuture belt.Middleware
+
 	hPast, hPresent, hFuture initHandler
 	pulse                    insolar.PulseStorage
 }
 
-func NewSorter() *Sorter {
+func NewSorter(mw belt.Middleware) *Sorter {
+	past := mware.NewChain()
+	past.AddMiddleware(mw)
+	past.AddMiddleware(ContextMiddleware)
+	past.AddMiddleware(PastMiddleware)
+
+	present := mware.NewChain()
+	present.AddMiddleware(mw)
+	present.AddMiddleware(ContextMiddleware)
+	present.AddMiddleware(PresentMiddleware)
+
+	future := mware.NewChain()
+	future.AddMiddleware(mw)
+	future.AddMiddleware(ContextMiddleware)
+	future.AddMiddleware(FutureMiddleware)
+
 	return &Sorter{
-		past:    slots.NewSlot(PastMiddleware),
-		present: slots.NewSlot(PresentMiddleware),
-		future:  slots.NewSlot(FutureMiddleware),
+		mPast:    past,
+		mPresent: present,
+		mFuture:  future,
+		past:     slots.NewSlot(past),
+		present:  slots.NewSlot(present),
+		future:   slots.NewSlot(future),
 	}
 }
 
@@ -63,20 +83,20 @@ func (s *Sorter) OnPulse(pn insolar.PulseNumber) {
 	defer s.sLock.Unlock()
 
 	// Deactivate past.
-	inactive := mware.Func(func(c context.Context, handler belt.Handler) ([]belt.Handler, error) {
+	inactive := mware.Func(func(c context.Context, handler belt.Item) ([]belt.Handler, error) {
 		return nil, errors.New("inactive")
 	})
 	s.past.Reset(inactive)
 
 	// Move present to past.
-	s.present.Reset(PastMiddleware)
+	s.present.Reset(s.mPast)
 	s.past = s.present
 
 	// Move future to present.
-	s.future.Reset(PresentMiddleware)
+	s.future.Reset(s.mPresent)
 	s.present = s.future
 
 	// Create future.
-	future := slots.NewSlot(FutureMiddleware)
+	future := slots.NewSlot(s.mFuture)
 	s.future = future
 }

@@ -31,7 +31,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:149cfa4fe155c0fef57b933adaafb577cd0dba20084408880beb3c6be26f8a2b"
+  digest = "1:ad30408bdc8419f5a79761561bbd2026acb1381540013e2494d117b73b359513"
   name = "github.com/andreyromancev/belt"
   packages = [
     ".",
@@ -39,9 +39,10 @@
     "log",
     "mware",
     "slots",
+    "workers",
   ]
   pruneopts = "UT"
-  revision = "6fc4365c689157d2b84387ceb8763760f807ed28"
+  revision = "783b1bf55a0172bf09bab5e71e9d00219e1321b2"
 
 [[projects]]
   branch = "master"
@@ -654,6 +655,7 @@
     "github.com/andreyromancev/belt/log",
     "github.com/andreyromancev/belt/mware",
     "github.com/andreyromancev/belt/slots",
+    "github.com/andreyromancev/belt/workers",
     "github.com/blang/semver",
     "github.com/dgraph-io/badger",
     "github.com/gogo/protobuf/gogoproto",
