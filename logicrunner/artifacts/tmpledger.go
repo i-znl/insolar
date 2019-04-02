@@ -254,6 +254,8 @@ func TmpLedger(t *testing.T, dir string, handlersRole insolar.StaticRole, c inso
 		panic(err)
 	}
 
+	pm.BeltSorter = handler.Sorter
+
 	if closeJets {
 		err := pm.HotDataWaiter.Unlock(ctx, insolar.ID(*insolar.NewJetID(0, nil)))
 		require.NoError(t, err)

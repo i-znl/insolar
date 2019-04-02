@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/andreyromancev/belt"
+	"github.com/insolar/insolar/ledger/artifactmanager/conver"
 	"github.com/insolar/insolar/ledger/storage/blob"
 	"github.com/pkg/errors"
 	"go.opencensus.io/stats"
@@ -71,6 +73,11 @@ type MessageHandler struct {
 	conf           *configuration.Ledger
 	middleware     *middleware
 	jetTreeUpdater *jetTreeUpdater
+
+	// Belt.
+	beltHandlers map[insolar.MessageType]insolar.MessageHandler
+	events       chan belt.Event
+	Sorter       *conver.Sorter
 }
 
 // NewMessageHandler creates new handler.
@@ -112,11 +119,12 @@ func instrumentHandler(name string) Handler {
 
 // Init initializes handlers and middleware.
 func (h *MessageHandler) Init(ctx context.Context) error {
+	h.initBelt(ctx)
+
 	m := newMiddleware(h)
 	h.middleware = m
 
 	h.jetTreeUpdater = newJetTreeUpdater(h.Nodes, h.JetStorage, h.Bus, h.JetCoordinator)
-
 	h.setHandlersForLight(m)
 	h.setReplayHandlers(m)
 
@@ -131,12 +139,13 @@ func (h *MessageHandler) setHandlersForLight(m *middleware) {
 		m.checkJet,
 	))
 
-	h.Bus.MustRegister(insolar.TypeGetObject,
-		BuildMiddleware(h.handleGetObject,
-			instrumentHandler("handleGetObject"),
-			m.addFieldsToLogger,
-			m.checkJet,
-			m.waitForHotData))
+	h.beltHandlers[insolar.TypeGetObject] = BuildMiddleware(h.handleGetObject,
+		instrumentHandler("handleGetObject"),
+		m.addFieldsToLogger,
+		m.checkJet,
+		m.waitForHotData)
+	h.Bus.MustRegister(insolar.TypeGetObject, h.WrapMessageBus)
+	//h.Bus.MustRegister(insolar.TypeGetObject, h.beltHandlers[insolar.TypeGetObject])
 
 	h.Bus.MustRegister(insolar.TypeGetDelegate,
 		BuildMiddleware(h.handleGetDelegate,

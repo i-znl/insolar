@@ -88,6 +88,10 @@ func GetLedgerComponents(conf configuration.Ledger, certificate insolar.Certific
 		blobSyncAccessor = blobDB
 	}
 
+	handler := artifactmanager.NewMessageHandler(&conf)
+	pm := pulsemanager.NewPulseManager(conf, dropCleaner, blobCleaner, blobSyncAccessor)
+	pm.BeltSorter = handler.Sorter
+
 	components := []interface{}{
 		legacyDB,
 		db,
@@ -107,13 +111,13 @@ func GetLedgerComponents(conf configuration.Ledger, certificate insolar.Certific
 		recentstorage.NewRecentStorageProvider(conf.RecentStorage.DefaultTTL),
 		artifactmanager.NewHotDataWaiterConcrete(),
 		jetcoordinator.NewJetCoordinator(conf.LightChainLimit),
-		pulsemanager.NewPulseManager(conf, dropCleaner, blobCleaner, blobSyncAccessor),
+		pm,
 		heavyserver.NewSync(legacyDB),
 	}
 
 	switch certificate.GetRole() {
 	case insolar.StaticRoleUnknown, insolar.StaticRoleLightMaterial:
-		components = append(components, artifactmanager.NewMessageHandler(&conf))
+		components = append(components, handler)
 	case insolar.StaticRoleHeavyMaterial:
 		components = append(components, heavy.Components()...)
 	}

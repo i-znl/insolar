@@ -31,6 +31,20 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:149cfa4fe155c0fef57b933adaafb577cd0dba20084408880beb3c6be26f8a2b"
+  name = "github.com/andreyromancev/belt"
+  packages = [
+    ".",
+    "items",
+    "log",
+    "mware",
+    "slots",
+  ]
+  pruneopts = "UT"
+  revision = "6fc4365c689157d2b84387ceb8763760f807ed28"
+
+[[projects]]
+  branch = "master"
   digest = "1:d6afaeed1502aa28e80a4ed0981d570ad91b2579193404256ce672ed0a609e0d"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
@@ -635,6 +649,11 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/andreyromancev/belt",
+    "github.com/andreyromancev/belt/items",
+    "github.com/andreyromancev/belt/log",
+    "github.com/andreyromancev/belt/mware",
+    "github.com/andreyromancev/belt/slots",
     "github.com/blang/semver",
     "github.com/dgraph-io/badger",
     "github.com/gogo/protobuf/gogoproto",

@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/insolar/insolar/ledger/artifactmanager/conver"
 	"github.com/insolar/insolar/ledger/storage/blob"
 	"github.com/pkg/errors"
 	"go.opencensus.io/stats"
@@ -77,6 +78,7 @@ type PulseManager struct {
 	DropModifier drop.Modifier `inject:""`
 	DropAccessor drop.Accessor `inject:""`
 	DropCleaner  drop.Cleaner
+	BeltSorter   *conver.Sorter
 
 	BlobSyncAccessor blob.CollectionAccessor
 
@@ -467,6 +469,10 @@ func (m *PulseManager) Set(ctx context.Context, newPulse insolar.Pulse, persist 
 	}
 	if err != nil {
 		return err
+	}
+
+	if m.BeltSorter != nil {
+		m.BeltSorter.OnPulse(newPulse.PulseNumber)
 	}
 
 	return nil
