@@ -42,18 +42,16 @@ import (
 )
 
 const (
-	nodeDomain        = "nodedomain"
-	nodeRecord        = "noderecord"
-	rootDomain        = "rootdomain"
-	walletContract    = "wallet"
-	memberContract    = "member"
-	allowanceContract = "allowance"
-	ethstoreContract  = "ethstore"
-	accountContract   = "account"
-	nodeAmount        = 32
+	nodeDomain       = "nodedomain"
+	nodeRecord       = "noderecord"
+	rootDomain       = "rootdomain"
+	memberContract   = "member"
+	ethstoreContract = "ethstore"
+	accountContract  = "account"
+	nodeAmount       = 32
 )
 
-var contractNames = []string{walletContract, memberContract, allowanceContract, rootDomain, nodeDomain, nodeRecord, ethstoreContract, accountContract}
+var contractNames = []string{memberContract, rootDomain, nodeDomain, nodeRecord, ethstoreContract, accountContract}
 
 type messageBusLocker interface {
 	Lock(ctx context.Context)
@@ -630,9 +628,12 @@ func (g *Genesis) Start(ctx context.Context) error {
 		return errors.Wrap(err, "[ Genesis ] couldn't get root keys")
 	}
 
-	oraclePubKeys, err := getMembersPubKeysFromFile(ctx, g.config.OracleKeysFile)
-	if err != nil {
-		return errors.Wrap(err, "[ Genesis ] couldn't get oracle keys")
+	var oraclePubKeys map[string]string
+	for _, o := range g.config.OraclesKeys {
+		_, oraclePubKeys[o.Name], err = getKeysFromFile(ctx, o.KeysFile)
+		if err != nil {
+			return errors.Wrap(err, "[ Genesis ] couldn't get keys for oracle: "+o.Name)
+		}
 	}
 
 	nodes, err := g.activateSmartContracts(ctx, cb, rootPubKey, oraclePubKeys, rootDomainID)

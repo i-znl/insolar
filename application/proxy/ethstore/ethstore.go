@@ -29,7 +29,7 @@ type Tx struct {
 
 // PrototypeReference to prototype of this contract
 // error checking hides in generator
-var PrototypeReference, _ = core.NewRefFromBase58("1111K5zTa2MUkC9ekCWwv7uUW7ePc2GWJAfL8yA2T6.11111111111111111111111111111111")
+var PrototypeReference, _ = core.NewRefFromBase58("11112f6oc2Wf2sQXT33yxLmY3G681nMZgBfhnFcVbJ1.11111111111111111111111111111111")
 
 // EthStore holds proxy type
 type EthStore struct {

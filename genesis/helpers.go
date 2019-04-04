@@ -105,30 +105,6 @@ func getKeysFromFile(ctx context.Context, file string) (crypto.PrivateKey, strin
 	return key, keys["public_key"], nil
 }
 
-func getMembersPubKeysFromFile(ctx context.Context, file string) (map[string]string, error) {
-	absPath, err := filepath.Abs(file)
-	if err != nil {
-		return nil, errors.Wrap(err, "[ getMembersPubKeysFromFile ] couldn't get abs path")
-	}
-	data, err := ioutil.ReadFile(absPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "[ getMembersPubKeysFromFile ] couldn't read keys file "+absPath)
-	}
-	var keys map[string]string
-	err = json.Unmarshal(data, &keys)
-	if err != nil {
-		return nil, errors.Wrapf(err, "[ getMembersPubKeysFromFile ] couldn't unmarshal data from %s", absPath)
-	}
-
-	for _, memberPubKey := range keys {
-		if memberPubKey == "" {
-			return nil, errors.New("[ getMembersPubKeysFromFile ] empty public key")
-		}
-	}
-
-	return keys, nil
-}
-
 func absPath(path string) (string, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
