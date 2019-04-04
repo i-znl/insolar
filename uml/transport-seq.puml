@@ -17,6 +17,7 @@ tcp --> InternalTransport: packets
 InternalTransport --> Hostnetwork: Packates() <- chan
 Hostnetwork -> Hostnetwork: messageProcessor()
 Hostnetwork --> ServiceNetwork: CallHandler
+ServiceNetwork->ServiceNetwork: BuildResponce()
 Hostnetwork -> InternalTransport: SendResponse()
 InternalTransport -> tcp: SendResponse()
 end

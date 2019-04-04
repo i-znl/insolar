@@ -8,11 +8,12 @@ ShortID
 Address
 }
 class Packet {
-Sender
-Receiver
+Sender:Host
+Receiver:Host
 Type
 RequestID
 RemoteAddress
+Reply()
 }
 
 
@@ -41,9 +42,7 @@ NewRequestBuilder()
 BuildResponse()
 }
 
-class TransportResolvable {
-}
-HostNetwork <|-- TransportResolvable
+
 
 interface ConsensusNetwork
 class transportConsensus {
@@ -52,55 +51,49 @@ processMessage()
 }
 ConsensusNetwork <|-- transportConsensus
 
-TransportResolvable --> InternalTransport
 
-abstract class baseTransport {
+abstract class hostTransport {
 serializer
 proxy
 packetHandler
 SendRequest()
 SendResponse()
 SendPacket()
-Close()
-Packets() <-chan
-Stopped() <-chan
 PublicAddress()
 }
-futureManager *-- baseTransport
-hostTransport --* baseTransport
+futureManager *-- hostTransport
+HostNetwork <|-- hostTransport
+
+class Address {
+protocol
+host
+port
+tcp://node-1.insolar.io:7900/reference
+}
+
 }
 
 package transport {
 interface Transport {
-
+SendDgram(address, buff)
 SenBuffer(address, buff)
-Packets() <-chan
-Stopped() <-chan
-PublicAddress()
 }
 
 class futureManager
 interface PublicAddressResolver
-interface connectionFactory
+class ConnectionPool
 
-
-
-
-
-class tcpTransport {
-connectionPool
-CreateConnection()
-send()
-handleAcceptedConnection()
-}
-class udpTransport {
-send()
+class transport {
+udpConn
+tcpConnectionPool
+Start()
+Stop()
+dialTcpConnection()
+dialUdpConnection()
 handleAcceptedConnection()
 }
 
-Transport <|-- tcpTransport
-Transport <|-- udpTransport
-
+Transport <|-- transport
 }
 
 
